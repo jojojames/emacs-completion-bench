@@ -11,22 +11,32 @@
 
 (package-install 'quelpa)
 (package-install 'hotfuzz)
-(package-install 'fussy)
 (package-install 'liquidmetal)
 (package-install 'orderless)
+(package-install 'fussy)
 
-(quelpa '(flx-rs
-          :fetcher github :repo "jcs-elpa/flx-rs"
-          :files (:defaults "bin")))
+;; Local development.
+;; (quelpa
+;;  '(fussy :fetcher file
+;;          :path "~/.emacs.d/elpa/fussy/fussy.el"))
+
+;; (quelpa
+;;  '(fzf-native :fetcher file
+;;               :path "~/.emacs.d/elpa/fzf-native/"
+;;               :files (:defaults "bin")))
+
 (quelpa '(fzf-native
           :fetcher github :repo "dangduc/fzf-native"
+          :files (:defaults "bin")))
+(quelpa '(flx-rs
+          :fetcher github :repo "jcs-elpa/flx-rs"
           :files (:defaults "bin")))
 (quelpa '(fuz-bin
           :fetcher github :repo "jcs-elpa/fuz-bin"
           :files (:defaults "bin")))
-(quelpa '(sublime-fuzzy
-          :fetcher github :repo "jcs-elpa/sublime-fuzzy"
-          :files (:defaults "bin")))
+;; (quelpa '(sublime-fuzzy
+;;           :fetcher github :repo "jcs-elpa/sublime-fuzzy"
+;;           :files (:defaults "bin")))
 
 (setq fussy-compare-same-score-fn nil
       fussy-use-cache nil
@@ -38,7 +48,7 @@
 (flx-rs-load-dyn)
 (fzf-native-load-dyn)
 (fuz-bin-load-dyn)
-(sublime-fuzzy-load-dyn)
+;; (sublime-fuzzy-load-dyn)
 
 (defun do-complete (s table)
   (let* ((meta (completion-metadata s table nil))
@@ -59,31 +69,39 @@
                 hotfuzz
                 flex
                 (fussy . flx-score)
-                ;; (fussy . flx-rs-score) ; Panics!
+                (fussy . flx-rs-score) ; Panics!
                 (fussy . ,#'fussy-fzf-native-score)
                 (fussy . ,#'fussy-fuz-bin-score)
                 ;; (fussy . ,#'fussy-liquidmetal-score) ; Signals error!
                 ;; (fussy . ,#'fussy-sublime-fuzzy-score) ; Panics!
                 (fussy . ,#'fussy-hotfuzz-score)
+                (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
+                (fussy . (fussy-fzf-score . fussy-filter-default))
                 orderless)))
   (message "Benchmarking on list of %s possible completions\n\twith median length %s."
            (length completions)
            (/ (cl-loop for s in completions sum (length s)) (length completions)))
 
   ;; Warmup, also sources required Lisp files
-  (mapc (lambda (style) 
-          (let ((completion-styles (list (if (consp style) (car style) style)))
-                (fussy-score-fn (cdr-safe style)))
+  (mapc (lambda (style)
+          (let* ((completion-styles (list (if (consp style) (car style) style)))
+                 (config (cdr-safe style))
+                 (fussy-score-fn (if (consp config) nil config))
+                 (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
+                 (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default)))
             (do-complete "x" completions)))
         styles)
 
   (mapc
    (lambda (style)
-     (let ((completion-styles (list (if (consp style) (car style) style)))
-           (fussy-score-fn (cdr-safe style)))
+     (let* ((completion-styles (list (if (consp style) (car style) style)))
+            (config (cdr-safe style))
+            (fussy-score-fn (if (consp config) nil config))
+            (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
+            (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default)))
        (garbage-collect)
        (message
         "style %s: %s" style
         (benchmark-run 5
           (mapc (lambda (s) (do-complete s completions)) needles)))))
-     styles))
+   styles))
