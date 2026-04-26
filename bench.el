@@ -59,25 +59,26 @@
     (when sortfun (setq candidates (funcall sortfun candidates)))
     candidates))
 
-(let ((completions (with-temp-buffer
-                     (insert-file-contents "completions")
-                     (split-string (buffer-string) "\n" t)))
-      (needles '("f" "cldbi" "emacs" "nixemacsnix"))
-      (completion-ignore-case t)
-      (styles `(basic
-                substring
-                hotfuzz
-                flex
-                (fussy . flx-score)
-                (fussy . flx-rs-score) ; Panics!
-                (fussy . ,#'fussy-fzf-native-score)
-                (fussy . ,#'fussy-fuz-bin-score)
-                ;; (fussy . ,#'fussy-liquidmetal-score) ; Signals error!
-                ;; (fussy . ,#'fussy-sublime-fuzzy-score) ; Panics!
-                (fussy . ,#'fussy-hotfuzz-score)
-                (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
-                (fussy . (fussy-fzf-score . fussy-filter-default))
-                orderless)))
+(let* ((completions (with-temp-buffer
+                      (insert-file-contents "completions")
+                      (split-string (buffer-string) "\n" t)))
+       (fussy-max-candidate-limit (length completions))
+       (needles '("f" "cldbi" "emacs" "nixemacsnix"))
+       (completion-ignore-case t)
+       (styles `(basic
+                 substring
+                 hotfuzz
+                 flex
+                 (fussy . flx-score)
+                 (fussy . flx-rs-score) ; Panics!
+                 (fussy . ,#'fussy-fzf-native-score)
+                 (fussy . ,#'fussy-fuz-bin-score)
+                 ;; (fussy . ,#'fussy-liquidmetal-score) ; Signals error!
+                 ;; (fussy . ,#'fussy-sublime-fuzzy-score) ; Panics!
+                 (fussy . ,#'fussy-hotfuzz-score)
+                 (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
+                 (fussy . (fussy-fzf-score . fussy-filter-default))
+                 orderless)))
   (message "Benchmarking on list of %s possible completions\n\twith median length %s."
            (length completions)
            (/ (cl-loop for s in completions sum (length s)) (length completions)))
