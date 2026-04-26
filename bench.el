@@ -50,13 +50,13 @@
 (fuz-bin-load-dyn)
 ;; (sublime-fuzzy-load-dyn)
 
-(defun do-complete (s table)
+(defun do-complete (s table &optional sort)
   (let* ((meta (completion-metadata s table nil))
          (candidates (completion-all-completions s table nil (length s) meta))
          (sortfun (alist-get 'display-sort-function meta))
          (last (last candidates)))
     (when (numberp (cdr last)) (setcdr last nil))
-    (when sortfun (setq candidates (funcall sortfun candidates)))
+    (when (and sort sortfun) (setq candidates (funcall sortfun candidates)))
     candidates))
 
 (let* ((completions (with-temp-buffer
@@ -75,7 +75,7 @@
                  (fussy . ,#'fussy-fuz-bin-score)
                  ;; (fussy . ,#'fussy-liquidmetal-score) ; Signals error!
                  ;; (fussy . ,#'fussy-sublime-fuzzy-score) ; Panics!
-                 (fussy . ,#'fussy-hotfuzz-score)
+                 ;; (fussy . ,#'fussy-hotfuzz-score)
                  (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
                  (fussy . (fussy-fzf-score . fussy-filter-default))
                  orderless)))
@@ -89,9 +89,9 @@
                  (config (cdr-safe style))
                  (fussy-score-fn (if (consp config) nil config))
                  (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
-                 (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default)))
-            (do-complete "x" completions)))
-        styles)
+                 (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default))
+                 (enable-sort-fn (and (consp style) (not (consp config)))))
+            (do-complete "x" completions enable-sort-fn))) styles)
 
   (mapc
    (lambda (style)
@@ -99,10 +99,11 @@
             (config (cdr-safe style))
             (fussy-score-fn (if (consp config) nil config))
             (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
-            (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default)))
+            (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default))
+            (enable-sort-fn (and (consp style) (not (consp config)))))
        (garbage-collect)
        (message
-        "style %s: %s" style
+        "style %s (sort-fn: %s): %s" style (if enable-sort-fn "on" "off")
         (benchmark-run 5
-          (mapc (lambda (s) (do-complete s completions)) needles)))))
+          (mapc (lambda (s) (do-complete s completions enable-sort-fn)) needles)))))
    styles))
