@@ -78,7 +78,8 @@
                  ;; (fussy . ,#'fussy-hotfuzz-score)
                  (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
                  (fussy . (fussy-fzf-score . fussy-filter-default))
-                 orderless)))
+                 orderless
+                 (orderless . flex))))
   (message "Benchmarking on list of %s possible completions\n\twith median length %s."
            (length completions)
            (/ (cl-loop for s in completions sum (length s)) (length completions)))
@@ -90,7 +91,10 @@
                  (fussy-score-fn (if (consp config) nil config))
                  (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
                  (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default))
-                 (enable-sort-fn (and (consp style) (not (consp config)))))
+                 (orderless-matching-styles (if (and (eq (car-safe style) 'orderless) config)
+                                                (list (intern (format "orderless-%s" config)))
+                                              orderless-matching-styles))
+                 (enable-sort-fn (and (consp style) (eq (car style) 'fussy) (not (consp config)))))
             (do-complete "x" completions enable-sort-fn))) styles)
 
   (mapc
@@ -100,7 +104,10 @@
             (fussy-score-fn (if (consp config) nil config))
             (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
             (fussy-filter-fn (if (consp config) (cdr config) 'fussy-filter-default))
-            (enable-sort-fn (and (consp style) (not (consp config)))))
+            (orderless-matching-styles (if (and (eq (car-safe style) 'orderless) config)
+                                           (list (intern (format "orderless-%s" config)))
+                                         orderless-matching-styles))
+            (enable-sort-fn (and (consp style) (eq (car style) 'fussy) (not (consp config)))))
        (garbage-collect)
        (message
         "style %s (sort-fn: %s): %s" style (if enable-sort-fn "on" "off")
