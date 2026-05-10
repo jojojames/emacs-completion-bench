@@ -28,12 +28,12 @@ The styles included in this benchmark are
   the following of which are benchmarked:
   
   - [flx], an Emacs Lisp library for fuzzy matching
-  - [fzf-native] which is a dynamic module implementing the [fzf] algorithm
+  - [flx-rs], a Rust dynamic module reimplementation of `flx`
+  - [fzf-native] which is a dynamic module implementing the [fzf] algorithm,
+    benchmarked with both `fussy-filter-by-scoring` and `fussy-filter-default`
   - [fuz], a dynamic module implementing skim's algorithm (or clangd's!)
-  - [hotfuzz] which calls into the Emacs Lisp implementation of
-    the Hotfuzz scoring algorithm
   
-  The [flx-rs], [LiquidMetal] and [sublime_fuzzy] backends had to be excluded
+  The [LiquidMetal] and [sublime_fuzzy] backends had to be excluded
   due to them erroring out on the benchmark input.
   
   To make timings comparable to other the styles,
@@ -47,8 +47,11 @@ The styles included in this benchmark are
     both since other styles do not implement this
 * [`orderless`][orderless]
   
-  Not fuzzy, but somewhat interesting to include
+  Not fuzzy by default, but somewhat interesting to include
   just for reference given its popularity.
+  Benchmarked with two configurations of `orderless-matching-styles`:
+  the default (`orderless-literal` + `orderless-regexp`)
+  and `orderless-flex` for fuzzy-style matching.
   
 The benchmark consists of completing against a list of candidate completions
 of length 95653, with the median length of each string being 37.
@@ -71,29 +74,35 @@ in a shell from within this directory.
 
 ## Results
 
-Running the benchmark on a Lenovo ThinkPad T450 in Emacs 28.1
+Running the benchmark on an Apple M5 in Emacs 31.0.50
 the resulting times were
 
-| Style                |      Time (s) | #GC |        GC time (s) |    Rel |
-|----------------------|--------------:|----:|-------------------:|-------:|
-| `basic`              |   0.264177651 |   0 |                0.0 |   0.39 |
-| `substring`          |   3.927441556 |   7 | 0.8942112610000006 |   5.82 |
-| `hotfuzz`            |   0.675077483 |   0 |                0.0 |      1 |
-| `flex`               |  10.659162948 |   9 | 1.1566389280000005 |  15.78 |
-| `fussy`/`flx`        |  20.459863556 |  51 |       11.053008226 |  30.31 |
-| `fussy`/`fzf-native` | 114.452248804 | 392 |       90.741769522 | 169.54 |
-| `fussy`/`fuz`        |   4.799709416 |   9 | 2.1221384660000098 |   7.11 |
-| `fussy`/`hotfuzz`    |  41.835871034 |   8 | 1.8608007069999957 |  61.97 |
-| `orderless`          |   1.652139614 |   3 | 0.6919645190000097 |   2.45 |
+| Style                                            | Time (s) | #GC | GC time (s) |   Rel |
+|--------------------------------------------------|---------:|----:|------------:|------:|
+| `basic`                                          | 0.057035 |   0 |         0.0 |  0.50 |
+| `fussy`/`fzf-native` (`fussy-filter-default`)    | 0.089633 |   0 |         0.0 |  0.78 |
+| `fussy`/`fzf-native` (`fussy-filter-by-scoring`) | 0.101029 |   0 |         0.0 |  0.88 |
+| `hotfuzz`                                        | 0.115202 |   0 |         0.0 |     1 |
+| `orderless` (default)                            | 0.310777 |   0 |         0.0 |  2.70 |
+| `fussy`/`fuz-bin`                                | 0.486535 |   0 |         0.0 |  4.22 |
+| `substring`                                      | 0.792698 |   0 |         0.0 |  6.88 |
+| `orderless` (flex)                               | 0.846879 |   0 |         0.0 |  7.35 |
+| `fussy`/`flx`                                    | 1.004024 |   2 |    0.139745 |  8.72 |
+| `flex`                                           | 2.247146 |   0 |         0.0 | 19.51 |
+| `fussy`/`flx-rs`                                 | 4.026389 |   0 |         0.0 | 34.95 |
 
 where the "Rel" column indicates the relative slowdown factor
 compared to the fastest sorting fuzzy style.
 
 ## Conclusion
 
-Something seems to have gone wrong with `fzf-native`.
-
 Hotfuzz is pretty fast.
+
+`fussy` paired with the `fzf-native` dynamic module is the only configuration
+that beats `hotfuzz` on this workload.
+
+`orderless` is fast in its default configuration; switching to
+`orderless-flex` for fuzzy matching costs roughly 2.7×.
 
 [hotfuzz]:https://github.com/axelf4/hotfuzz
 [fussy]: https://github.com/jojojames/fussy
