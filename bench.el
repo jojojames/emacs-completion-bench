@@ -44,6 +44,7 @@
       fussy-score-threshold-to-filter-alist nil)
 
 (require 'fussy)
+(require 'orderless)
 (require 'hotfuzz-module) ; Ensure that the hotfuzz module is available
 (flx-rs-load-dyn)
 (fzf-native-load-dyn)
