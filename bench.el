@@ -71,7 +71,6 @@
                  flex
                  (fussy . flx-score)
                  (fussy . flx-rs-score) ; Panics!
-                 (fussy . ,#'fussy-fzf-native-score)
                  (fussy . ,#'fussy-fuz-bin-score)
                  ;; (fussy . ,#'fussy-liquidmetal-score) ; Signals error!
                  ;; (fussy . ,#'fussy-sublime-fuzzy-score) ; Panics!
