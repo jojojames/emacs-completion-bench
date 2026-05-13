@@ -78,6 +78,9 @@
                  ;; (fussy . ,#'fussy-hotfuzz-score)
                  (fussy . (fussy-fzf-score . fussy-filter-by-scoring))
                  (fussy . (fussy-fzf-score . fussy-filter-default))
+                 (fussy-filter-only . (fussy-fzf-score . fussy-filter-by-scoring))
+                 (fussy-filter-only . (fussy-fzf-score . fussy-filter-default))
+                 ;; (fussy . (fussy-fuz-score . fussy-filter-by-scoring))
                  orderless
                  (orderless . flex))))
   (message "Benchmarking on list of %s possible completions\n\twith median length %s."
@@ -86,7 +89,9 @@
 
   ;; Warmup, also sources required Lisp files
   (mapc (lambda (style)
-          (let* ((completion-styles (list (if (consp style) (car style) style)))
+          (let* ((style-sym (if (consp style) (car style) style))
+                 (filter-only (eq style-sym 'fussy-filter-only))
+                 (completion-styles (list (if filter-only 'fussy style-sym)))
                  (config (cdr-safe style))
                  (fussy-score-fn (if (consp config) nil config))
                  (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
@@ -94,12 +99,15 @@
                  (orderless-matching-styles (if (and (eq (car-safe style) 'orderless) config)
                                                 (list (intern (format "orderless-%s" config)))
                                               orderless-matching-styles))
+                 (fzf-native-filter-only-min-pool (if filter-only 1 fzf-native-filter-only-min-pool))
                  (enable-sort-fn (and (consp style) (eq (car style) 'fussy) (not (consp config)))))
             (do-complete "x" completions enable-sort-fn))) styles)
 
   (mapc
    (lambda (style)
-     (let* ((completion-styles (list (if (consp style) (car style) style)))
+     (let* ((style-sym (if (consp style) (car style) style))
+            (filter-only (eq style-sym 'fussy-filter-only))
+            (completion-styles (list (if filter-only 'fussy style-sym)))
             (config (cdr-safe style))
             (fussy-score-fn (if (consp config) nil config))
             (fussy-score-ALL-fn (if (consp config) (car config) 'fussy-score))
@@ -107,6 +115,7 @@
             (orderless-matching-styles (if (and (eq (car-safe style) 'orderless) config)
                                            (list (intern (format "orderless-%s" config)))
                                          orderless-matching-styles))
+            (fzf-native-filter-only-min-pool (if filter-only 1 fzf-native-filter-only-min-pool))
             (enable-sort-fn (and (consp style) (eq (car style) 'fussy) (not (consp config)))))
        (garbage-collect)
        (message
